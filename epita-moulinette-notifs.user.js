@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.2
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -16,11 +16,10 @@
 
     const POLL_INTERVAL = 5_000;
     const STORE_KEY = "moulinette-notifs";
+    const DEFAULT_STATE = { watching: false, seen: [] };
 
     const path = location.pathname.replace(/\/?$/, "/");
     const projectName = document.querySelector("main header h1")?.textContent?.trim() ?? "Unknown";
-
-    // --- Storage (single-read, atomic read-modify-write) ---
 
     function load() {
         try { return JSON.parse(localStorage.getItem(STORE_KEY)) ?? {}; }
@@ -28,16 +27,33 @@
     }
 
     function getState() {
-        return load()[path] ?? { watching: false, seen: [] };
+        return load()[path] ?? { ...DEFAULT_STATE };
     }
 
     function setState(patch) {
         const data = load();
-        data[path] = { ...(data[path] ?? { watching: false, seen: [] }), ...patch };
+        data[path] = { ...(data[path] ?? DEFAULT_STATE), ...patch };
         localStorage.setItem(STORE_KEY, JSON.stringify(data));
     }
 
-    // --- DOM helpers ---
+    function playChime() {
+        const ctx = new AudioContext();
+        const t = ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "triangle";
+            osc.frequency.value = freq;
+            const onset = t + i * 0.08;
+            gain.gain.setValueAtTime(0, onset);
+            gain.gain.linearRampToValueAtTime(0.15, onset + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, onset + 0.5);
+            osc.start(onset);
+            osc.stop(onset + 0.5);
+        });
+    }
 
     function findTagsTitle(root = document) {
         return [...root.querySelectorAll(".body .title")].find((el) =>
@@ -55,18 +71,16 @@
             name: el.querySelector(".list__item__name")?.textContent?.trim(),
             percent: el.querySelector("trace-symbol")?.getAttribute("successpercent"),
             status: el.querySelector("trace-symbol")?.getAttribute("status"),
+            href: el.getAttribute("href"),
         })).filter((t) => t.name);
     }
-
-    // --- Polling (generation-guarded to prevent concurrent loops) ---
 
     let generation = 0;
     let pollTimer = null;
     let countdownTimer = null;
 
     async function poll(button, gen) {
-        if (gen !== generation) return;
-        if (!getState().watching) return;
+        if (gen !== generation || !getState().watching) return;
 
         try {
             const resp = await fetch(location.href);
@@ -80,33 +94,31 @@
 
             const tags = parseTags(list);
 
-            // Safely update live DOM without innerHTML
             const liveList = findTagList(findTagsTitle());
             if (liveList) {
-                while (liveList.firstChild) liveList.removeChild(liveList.firstChild);
-                for (const child of list.childNodes) {
-                    liveList.appendChild(document.importNode(child, true));
-                }
+                liveList.replaceChildren(...[...list.childNodes].map((n) => document.importNode(n, true)));
             }
 
-            // Re-read state fresh after async work to avoid stale seen list
             const state = getState();
             let notified = false;
 
             for (const tag of tags) {
-                if (state.seen.includes(tag.name)) continue;
-                if (tag.status !== "SUCCEEDED") continue;
+                if (state.seen.includes(tag.name) || tag.status !== "SUCCEEDED") continue;
 
                 GM_notification({
                     title: `${projectName}: ${tag.name}`,
                     text: `${tag.percent ?? "?"}% passed`,
+                    onclick: tag.href ? () => window.open(new URL(tag.href, location.origin).href, "_blank") : undefined,
                 });
 
                 state.seen.push(tag.name);
                 notified = true;
             }
 
-            if (notified) setState({ seen: state.seen });
+            if (notified) {
+                setState({ seen: state.seen });
+                playChime();
+            }
         } catch (e) {
             console.warn("[moulinette-notifs] poll failed:", e);
         }
@@ -115,21 +127,16 @@
     }
 
     function schedule(button, gen) {
-        if (gen !== generation) return;
-        if (!getState().watching) return;
+        if (gen !== generation || !getState().watching) return;
         startCountdown(button, gen, POLL_INTERVAL);
         pollTimer = setTimeout(() => poll(button, gen), POLL_INTERVAL);
     }
 
     function startCountdown(button, gen, remaining) {
         if (gen !== generation) return;
-        const sec = Math.ceil(remaining / 1000);
-        button.textContent = `Watching (${sec}s)`;
+        button.textContent = `Watching (${Math.ceil(remaining / 1000)}s)`;
         if (remaining > 0) {
-            countdownTimer = setTimeout(
-                () => startCountdown(button, gen, remaining - 1000),
-                1000
-            );
+            countdownTimer = setTimeout(() => startCountdown(button, gen, remaining - 1000), 1000);
         }
     }
 
@@ -141,40 +148,43 @@
         countdownTimer = null;
     }
 
-    // --- UI ---
-
     function createButton(active) {
         const btn = document.createElement("button");
-        btn.style.cssText =
-            "margin-left: 8px; padding: 4px 14px; border: none; border-radius: 6px; " +
-            "cursor: pointer; font-size: 13px; font-weight: 500; color: white; " +
-            "transition: background-color 0.2s;";
-        styleButton(btn, active);
+        btn.style.cssText = [
+            "margin-left: 8px",
+            "padding: 4px 14px",
+            "border: 1px solid var(--card-separator)",
+            "border-radius: 6px",
+            "cursor: pointer",
+            "font-size: 13px",
+            "font-weight: 500",
+            "font-family: inherit",
+            "transition: all 0.2s",
+        ].join("; ");
+        applyButtonStyle(btn, active);
         btn.addEventListener("click", () => toggle(btn));
         return btn;
     }
 
-    function styleButton(btn, active) {
+    function applyButtonStyle(btn, active) {
         btn.textContent = active ? "Watching" : "Watch";
-        btn.style.backgroundColor = active ? "#16a34a" : "#6b7280";
+        btn.style.backgroundColor = active ? "var(--green, #16a34a)" : "var(--background)";
+        btn.style.color = active ? "white" : "var(--primary-text)";
     }
 
     function toggle(btn) {
         stopTimers();
         const watching = !getState().watching;
         setState({ watching });
-        styleButton(btn, watching);
+        applyButtonStyle(btn, watching);
         if (watching) poll(btn, generation);
     }
-
-    // --- Init ---
 
     const tagsTitle = findTagsTitle();
     if (!tagsTitle) return;
 
     const state = getState();
 
-    // Seed already-visible tags as seen on first use
     if (state.seen.length === 0) {
         const list = findTagList(tagsTitle);
         if (list) {
