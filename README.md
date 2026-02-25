@@ -17,19 +17,37 @@ Stop refreshing the page — let the page watch for you.
 
 ## Installation
 
-1. Install [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Firefox, Edge, Safari).
-2. Click the link below to install the script:
+### 1. Install Tampermonkey
 
-   **[Install epita-moulinette-notifs.user.js](https://github.com/KazeTachinuu/epita-moulinette-notifs/raw/main/epita-moulinette-notifs.user.js)**
+Tampermonkey is a browser extension that lets you run userscripts on any website.
 
-3. Navigate to a project page on `intra.forge.epita.fr` — the **Watch** button
-   should appear next to the Tags header.
+| Browser | Link |
+|---------|------|
+| Chrome  | [Chrome Web Store](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo) |
+| Firefox | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/tampermonkey/) |
+| Edge    | [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd) |
+| Safari  | [Mac App Store](https://apps.apple.com/app/tampermonkey/id1482490089) |
 
-## Requirements
+### 2. Install the script
 
-- [Tampermonkey](https://www.tampermonkey.net/) or any userscript manager that
-  supports `GM_notification`.
-- Access to `intra.forge.epita.fr` (EPITA students/staff).
+Click the link below — Tampermonkey will open an install prompt automatically:
+
+**[Install epita-moulinette-notifs.user.js](https://github.com/KazeTachinuu/epita-moulinette-notifs/raw/master/epita-moulinette-notifs.user.js)**
+
+> If the install prompt doesn't appear, you can install manually:
+> 1. Open the Tampermonkey dashboard (click the extension icon → **Dashboard**)
+> 2. Go to the **Utilities** tab
+> 3. Paste the raw script URL in **Install from URL** and click **Install**
+
+### 3. Allow notifications
+
+The first time a tag is processed, your browser will ask for notification
+permissions. Click **Allow** — otherwise the script can't notify you.
+
+### 4. Use it
+
+Navigate to any project page on `intra.forge.epita.fr` that has a **Tags**
+section. You'll see a **Watch** button. Click it and you're set.
 
 ## License
 
