@@ -5,7 +5,7 @@ are processed on the [EPITA Forge intranet](https://intra.forge.epita.fr).
 
 Stop refreshing the page — let the page watch for you.
 
-![Screenshot](screenshot.png)
+![Screenshot](preview.png)
 
 ## How it works
 
