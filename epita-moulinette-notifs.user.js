@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -20,41 +20,34 @@
     const path = location.pathname.replace(/\/?$/, "/");
     const projectName = document.querySelector("main header h1")?.textContent?.trim() ?? "Unknown";
 
-    // --- Storage ---
+    // --- Storage (single-read, atomic read-modify-write) ---
 
     function load() {
         try { return JSON.parse(localStorage.getItem(STORE_KEY)) ?? {}; }
         catch { return {}; }
     }
 
-    function save(data) {
-        localStorage.setItem(STORE_KEY, JSON.stringify(data));
-    }
-
     function getState() {
-        const data = load();
-        return data[path] ?? { watching: false, seen: [] };
+        return load()[path] ?? { watching: false, seen: [] };
     }
 
     function setState(patch) {
         const data = load();
-        data[path] = { ...getState(), ...patch };
-        save(data);
+        data[path] = { ...(data[path] ?? { watching: false, seen: [] }), ...patch };
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
     }
 
     // --- DOM helpers ---
 
-    function findTagsTitle() {
-        for (const el of document.querySelectorAll(".body .title")) {
-            if (el.textContent.includes("Tags")) return el;
-        }
-        return null;
+    function findTagsTitle(root = document) {
+        return [...root.querySelectorAll(".body .title")].find((el) =>
+            el.textContent.includes("Tags")
+        ) ?? null;
     }
 
     function findTagList(tagsTitle) {
-        return tagsTitle?.nextElementSibling?.classList.contains("list")
-            ? tagsTitle.nextElementSibling
-            : null;
+        const next = tagsTitle?.nextElementSibling;
+        return next?.classList.contains("list") ? next : null;
     }
 
     function parseTags(list) {
@@ -65,35 +58,41 @@
         })).filter((t) => t.name);
     }
 
-    // --- Polling ---
+    // --- Polling (generation-guarded to prevent concurrent loops) ---
 
-    let timer = null;
+    let generation = 0;
+    let pollTimer = null;
+    let countdownTimer = null;
 
-    async function poll(button) {
-        const state = getState();
-        if (!state.watching) return;
+    async function poll(button, gen) {
+        if (gen !== generation) return;
+        if (!getState().watching) return;
 
         try {
-            const html = await fetch(location.href).then((r) => r.text());
+            const resp = await fetch(location.href);
+            if (gen !== generation) return;
+            const html = await resp.text();
+            if (gen !== generation) return;
+
             const doc = new DOMParser().parseFromString(html, "text/html");
+            const list = findTagList(findTagsTitle(doc));
+            if (!list) return schedule(button, gen);
 
-            const title = [...doc.querySelectorAll(".body .title")].find((el) =>
-                el.textContent.includes("Tags")
-            );
-            const list = title?.nextElementSibling;
-            if (!list) return schedule(button);
+            const tags = parseTags(list);
 
-            const tags = [...list.querySelectorAll("a.list__item:not(.list__item__disabled)")].map((el) => ({
-                name: el.querySelector(".list__item__name")?.textContent?.trim(),
-                percent: el.querySelector("trace-symbol")?.getAttribute("successpercent"),
-                status: el.querySelector("trace-symbol")?.getAttribute("status"),
-            })).filter((t) => t.name);
-
-            // Also update the live DOM tag list
+            // Safely update live DOM without innerHTML
             const liveList = findTagList(findTagsTitle());
-            if (liveList && list) liveList.innerHTML = list.innerHTML;
+            if (liveList) {
+                while (liveList.firstChild) liveList.removeChild(liveList.firstChild);
+                for (const child of list.childNodes) {
+                    liveList.appendChild(document.importNode(child, true));
+                }
+            }
 
+            // Re-read state fresh after async work to avoid stale seen list
+            const state = getState();
             let notified = false;
+
             for (const tag of tags) {
                 if (state.seen.includes(tag.name)) continue;
                 if (tag.status !== "SUCCEEDED") continue;
@@ -112,33 +111,44 @@
             console.warn("[moulinette-notifs] poll failed:", e);
         }
 
-        schedule(button);
+        schedule(button, gen);
     }
 
-    function schedule(button) {
+    function schedule(button, gen) {
+        if (gen !== generation) return;
         if (!getState().watching) return;
-        updateCountdown(button, POLL_INTERVAL);
-        timer = setTimeout(() => poll(button), POLL_INTERVAL);
+        startCountdown(button, gen, POLL_INTERVAL);
+        pollTimer = setTimeout(() => poll(button, gen), POLL_INTERVAL);
     }
 
-    function updateCountdown(button, remaining) {
-        if (!getState().watching) return;
+    function startCountdown(button, gen, remaining) {
+        if (gen !== generation) return;
         const sec = Math.ceil(remaining / 1000);
         button.textContent = `Watching (${sec}s)`;
         if (remaining > 0) {
-            setTimeout(() => updateCountdown(button, remaining - 1000), 1000);
+            countdownTimer = setTimeout(
+                () => startCountdown(button, gen, remaining - 1000),
+                1000
+            );
         }
+    }
+
+    function stopTimers() {
+        generation++;
+        clearTimeout(pollTimer);
+        clearTimeout(countdownTimer);
+        pollTimer = null;
+        countdownTimer = null;
     }
 
     // --- UI ---
 
     function createButton(active) {
         const btn = document.createElement("button");
-        btn.style.cssText = `
-            margin-left: 8px; padding: 4px 14px; border: none; border-radius: 6px;
-            cursor: pointer; font-size: 13px; font-weight: 500; color: white;
-            transition: background-color 0.2s;
-        `.replace(/\n\s*/g, " ");
+        btn.style.cssText =
+            "margin-left: 8px; padding: 4px 14px; border: none; border-radius: 6px; " +
+            "cursor: pointer; font-size: 13px; font-weight: 500; color: white; " +
+            "transition: background-color 0.2s;";
         styleButton(btn, active);
         btn.addEventListener("click", () => toggle(btn));
         return btn;
@@ -150,16 +160,11 @@
     }
 
     function toggle(btn) {
+        stopTimers();
         const watching = !getState().watching;
         setState({ watching });
         styleButton(btn, watching);
-
-        if (watching) {
-            poll(btn);
-        } else {
-            clearTimeout(timer);
-            timer = null;
-        }
+        if (watching) poll(btn, generation);
     }
 
     // --- Init ---
@@ -169,7 +174,7 @@
 
     const state = getState();
 
-    // Seed already-visible tags as seen on first watch
+    // Seed already-visible tags as seen on first use
     if (state.seen.length === 0) {
         const list = findTagList(tagsTitle);
         if (list) {
@@ -183,5 +188,5 @@
     const btn = createButton(state.watching);
     tagsTitle.appendChild(btn);
 
-    if (state.watching) poll(btn);
+    if (state.watching) poll(btn, generation);
 })();
