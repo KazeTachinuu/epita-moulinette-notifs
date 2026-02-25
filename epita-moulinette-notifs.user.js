@@ -14,7 +14,7 @@
 (function () {
     "use strict";
 
-    const POLL_INTERVAL = 30_000;
+    const POLL_INTERVAL = 5_000;
     const STORE_KEY = "moulinette-notifs";
 
     const path = location.pathname.replace(/\/?$/, "/");

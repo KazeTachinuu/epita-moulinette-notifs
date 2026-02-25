@@ -11,7 +11,7 @@ Stop refreshing the page — let the page watch for you.
 
 1. On any project page with a **Tags** section, a **Watch** button appears.
 2. Click it to start watching. The script polls silently in the background every
-   30 seconds — no page reloads.
+   5 seconds — no page reloads.
 3. When new tags finish processing, you get desktop notifications with the
    project name, tag name, and success percentage.
 4. The button shows a live countdown to the next poll.
