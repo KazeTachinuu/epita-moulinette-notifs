@@ -9,7 +9,7 @@ interface Tag {
 
 const tags: Tag[] = [];
 
-let tagCounter = 1;
+let tagCounter = 0;
 
 function renderTagHTML(tag: Tag): string {
   return `<a class="list__item" href="#">

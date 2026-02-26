@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.3
+// @version      2.4
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -17,6 +17,15 @@
     const POLL_INTERVAL = 5_000;
     const STORE_KEY = "moulinette-notifs";
     const DEFAULT_STATE = { watching: false, seen: [] };
+
+    let audioCtx = null;
+    function getAudioCtx() {
+        if (!audioCtx || audioCtx.state === "closed") {
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+    }
 
     const path = location.pathname.replace(/\/?$/, "/");
     const projectName = document.querySelector("main header h1")?.textContent?.trim() ?? "Unknown";
@@ -37,7 +46,7 @@
     }
 
     function playChime(success) {
-        const ctx = new AudioContext();
+        const ctx = getAudioCtx();
         const t = ctx.currentTime;
         if (success) {
             [523.25, 659.25, 783.99].forEach((freq, i) => {
@@ -199,7 +208,10 @@
         const watching = !getState().watching;
         setState({ watching });
         applyButtonStyle(btn, watching);
-        if (watching) poll(btn, generation);
+        if (watching) {
+            getAudioCtx(); // warm up audio context during user gesture
+            poll(btn, generation);
+        }
     }
 
     const tagsTitle = findTagsTitle();
