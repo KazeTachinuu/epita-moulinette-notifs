@@ -64,7 +64,7 @@
                 osc.frequency.value = freq;
                 const onset = t + i * 0.15;
                 gain.gain.setValueAtTime(0, onset);
-                gain.gain.linearRampToValueAtTime(0.13, onset + 0.03);
+                gain.gain.linearRampToValueAtTime(0.22, onset + 0.03);
                 gain.gain.exponentialRampToValueAtTime(0.001, onset + 0.4);
                 osc.start(onset);
                 osc.stop(onset + 0.4);
