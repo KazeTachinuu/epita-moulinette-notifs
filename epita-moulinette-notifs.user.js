@@ -135,8 +135,11 @@
             }
 
             if (notified) {
-                setState({ seen: state.seen });
+                setState({ seen: state.seen, watching: false });
                 playChime(allPerfect);
+                stopTimers();
+                applyButtonStyle(button, false);
+                return;
             }
         } catch (e) {
             console.warn("[moulinette-notifs] poll failed:", e);
