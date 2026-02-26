@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.4
+// @version      2.4.1
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -11,7 +11,7 @@
 // @downloadURL  https://github.com/KazeTachinuu/epita-moulinette-notifs/raw/master/epita-moulinette-notifs.user.js
 // ==/UserScript==
 
-(function () {
+(function() {
     "use strict";
 
     const POLL_INTERVAL = 5_000;
@@ -132,23 +132,29 @@
             for (const tag of tags) {
                 if (state.seen.includes(tag.name) || tag.status !== "SUCCEEDED") continue;
 
+                const isPerfect = tag.percent === "100";
+
                 GM_notification({
                     title: `${projectName}: ${tag.name}`,
                     text: `${tag.percent ?? "?"}% passed`,
                     onclick: tag.href ? () => window.open(new URL(tag.href, location.origin).href, "_blank") : undefined,
                 });
 
-                if (tag.percent !== "100") allPerfect = false;
+                if (isPerfect) {
+                    state.seen.push(tag.name);
+                    setState({ seen: state.seen, watching: false });
+                    playChime(true);
+                    stopTimers();
+                    applyButtonStyle(button, false);
+                    return;
+                }
+
                 state.seen.push(tag.name);
                 notified = true;
             }
 
             if (notified) {
-                setState({ seen: state.seen, watching: false });
-                playChime(allPerfect);
-                stopTimers();
-                applyButtonStyle(button, false);
-                return;
+                playChime(false);
             }
         } catch (e) {
             console.warn("[moulinette-notifs] poll failed:", e);
