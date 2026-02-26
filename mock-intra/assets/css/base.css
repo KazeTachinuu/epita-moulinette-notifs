@@ -1,0 +1,115 @@
+
+:root {
+    font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+}
+
+
+body.dark {
+    --background: #111217;
+    --card-background: #1A1C23;
+    --card-separator: #262931;
+    --card-footer: #16181F;
+    --rectangle-background: #0D0E12;
+    --navigation-background: #0D0E14;
+    --tag-background: #101117;
+    --border: #27282F;
+    --primary-text: #DCDFF0;
+    --secondary-text: #9CA3B8;
+    --trivial: #1469CD;
+    --easy: #43B11D;
+    --medium: #DAC400;
+    --hard: #DA3400;
+    --checkmark: #43B11D;
+    --breadcrumb: #212126;
+
+    --required-validated: #00561b;
+    --required: #DAC400;
+    --button: #0072DB;
+    --button-hover: #0059C1;
+}
+
+body.light {
+    --background: #F9FAFB;
+    --card-background: #FFFFFF;
+    --card-separator: #E5E7EB;
+    --card-footer: #F3F4F6;
+    --rectangle-background: #F3F4F6;
+    --navigation-background: #F9FAFB;
+    --tag-background: #E5E7EB;
+    --border: #E5E7EB;
+    --primary-text: #1F2937;
+    --secondary-text: #4B5563;
+    --trivial: #1469CD;
+    --easy: #43B11D;
+    --medium: #DAC400;
+    --hard: #DA3400;
+    --checkmark: #43B11D;
+    --breadcrumb: #F3F4F6;
+
+    --required-validated: #00561b;
+    --required: #DAC400;
+    --button: #0072DB;
+    --button-hover: #0059C1;
+}
+
+body {
+    display: flex;
+    flex-direction: row;
+
+    width: 100vw;
+    height: 100vh;
+
+    color: var(--primary-text);
+    background-color: var(--background);
+    font-family: 'Inter', sans-serif;;
+}
+
+img {
+    width: 100%;
+    height: 100%;
+}
+
+ul, li {
+    list-style: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: inherit;
+}
+
+
+input {
+    font-family: 'Inter', sans-serif;
+}
+
+button {
+    color: var(--primary-text);
+    background-color: var(--button);
+    outline: none;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 16px;
+    transition: 0.2s linear;
+}
+
+.button__big {
+    width: 100%;
+}
+
+button:hover {
+    cursor: pointer;
+    background-color: var(--button-hover);
+}

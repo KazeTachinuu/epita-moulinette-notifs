@@ -1,0 +1,36 @@
+body.dark {
+  --background: #1F080A!important;
+  --card-background: #300D11!important;
+  --card-separator: #44131B!important;
+  --card-footer: #2A0B0E!important;
+  --rectangle-background: #190608!important;
+  --navigation-background: #1B0607!important;
+  --tag-background: #1F0809!important;
+  --border: #421515!important;
+  --primary-text: #FBD1D3!important;
+  --secondary-text: #DD7887!important;
+  --breadcrumb: #351512!important;
+  --trivial: #1469CD!important;
+  --easy: #43B11D!important;
+  --medium: #DAC400!important;
+  --hard: #DA3400!important;
+  --checkmark: #43B11D!important;
+}
+body.light {
+  --background: #FDF7F9!important;
+  --card-background: #FFFFFF!important;
+  --card-separator: #F5DBE1!important;
+  --card-footer: #F5DBE1!important;
+  --rectangle-background: #FBEFF1!important;
+  --navigation-background: #FDF7F9!important;
+  --tag-background: #F5DBE1!important;
+  --border: #F5DBE1!important;
+  --primary-text: #4A0D20!important;
+  --secondary-text: #882645!important;
+  --breadcrumb: #FBEFF1!important;
+  --trivial: #1469CD!important;
+  --easy: #43B11D!important;
+  --medium: #DAC400!important;
+  --hard: #DA3400!important;
+  --checkmark: #43B11D!important;
+}

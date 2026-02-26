@@ -1,0 +1,23 @@
+/* Argonaut theme, from https://github.com/pwaleczek/Argonaut-theme */
+
+body.light {
+    --ansi-black: #000000;
+    --ansi-red: #ff5729;
+    --ansi-green: #a0df02;
+    --ansi-yellow: #ffd100;
+    --ansi-blue: #4cc0d2;
+    --ansi-magenta: #af85be;
+    --ansi-cyan: #38edd3;
+    --ansi-white: #5f6368;
+}
+
+body.dark {
+    --ansi-black: #898e95;
+    --ansi-red: #ff5729;
+    --ansi-green: #acf000;
+    --ansi-yellow: #ffd100;
+    --ansi-blue: #4cc0d2;
+    --ansi-magenta: #af85be;
+    --ansi-cyan: #38edd3;
+    --ansi-white: #d9eef1;
+}

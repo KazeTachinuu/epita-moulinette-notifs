@@ -1,0 +1,78 @@
+.modal__container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal__body {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    max-height: 100%;
+    overflow-y: auto;
+    background-color: var(--card-background);
+    border-radius: 5px;
+    padding: 32px;
+}
+
+.modal__body button {
+    margin-top: 8px;
+}
+
+.modal__body h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.modal__section__title {
+    font-weight: 500;
+    font-size: 14px;
+
+    margin-top: 24px;
+    margin-bottom: 16px;
+}
+
+.modal__section__content {
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 16px;
+}
+
+.modal__section__radio {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: start;
+    gap: 8px;
+}
+
+.modal__section__radio input {
+    margin-top: 1px;
+}
+
+.modal__section__radio label {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal__section__radio label > * {
+    width: 100%;
+}
+
+.modal__section__radio label strong {
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.modal__section__radio label small {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--secondary-text);
+}

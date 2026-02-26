@@ -52,6 +52,20 @@ permissions. Click **Allow** — otherwise the script can't notify you.
 Navigate to any project page on `intra.forge.epita.fr` that has a **Tags**
 section. You'll see a **Watch** button. Click it and you're set.
 
+## Development
+
+A mock intranet is included for local testing without needing access to the real
+EPITA Forge intranet.
+
+```bash
+cd mock-intra
+bun serve.ts
+```
+
+Open http://localhost:3000 — you'll see a fake project page with the userscript
+loaded. Use the **Mock Controls** panel (bottom-left) to simulate tag submissions
+at various success rates, reset state, and test notifications.
+
 ## License
 
 MIT
