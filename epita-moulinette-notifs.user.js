@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      2.3
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -36,23 +36,40 @@
         localStorage.setItem(STORE_KEY, JSON.stringify(data));
     }
 
-    function playChime() {
+    function playChime(success) {
         const ctx = new AudioContext();
         const t = ctx.currentTime;
-        [523.25, 659.25, 783.99].forEach((freq, i) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = "triangle";
-            osc.frequency.value = freq;
-            const onset = t + i * 0.08;
-            gain.gain.setValueAtTime(0, onset);
-            gain.gain.linearRampToValueAtTime(0.15, onset + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, onset + 0.5);
-            osc.start(onset);
-            osc.stop(onset + 0.5);
-        });
+        if (success) {
+            [523.25, 659.25, 783.99].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "triangle";
+                osc.frequency.value = freq;
+                const onset = t + i * 0.08;
+                gain.gain.setValueAtTime(0, onset);
+                gain.gain.linearRampToValueAtTime(0.15, onset + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, onset + 0.5);
+                osc.start(onset);
+                osc.stop(onset + 0.5);
+            });
+        } else {
+            [392, 370, 349, 311].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "triangle";
+                osc.frequency.value = freq;
+                const onset = t + i * 0.15;
+                gain.gain.setValueAtTime(0, onset);
+                gain.gain.linearRampToValueAtTime(0.13, onset + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, onset + 0.4);
+                osc.start(onset);
+                osc.stop(onset + 0.4);
+            });
+        }
     }
 
     function findTagsTitle(root = document) {
@@ -101,6 +118,7 @@
 
             const state = getState();
             let notified = false;
+            let allPerfect = true;
 
             for (const tag of tags) {
                 if (state.seen.includes(tag.name) || tag.status !== "SUCCEEDED") continue;
@@ -111,13 +129,14 @@
                     onclick: tag.href ? () => window.open(new URL(tag.href, location.origin).href, "_blank") : undefined,
                 });
 
+                if (tag.percent !== "100") allPerfect = false;
                 state.seen.push(tag.name);
                 notified = true;
             }
 
             if (notified) {
                 setState({ seen: state.seen });
-                playChime();
+                playChime(allPerfect);
             }
         } catch (e) {
             console.warn("[moulinette-notifs] poll failed:", e);
