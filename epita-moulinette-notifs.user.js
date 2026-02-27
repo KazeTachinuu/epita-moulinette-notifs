@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epita Moulinette Notifs
 // @namespace    http://tampermonkey.net/
-// @version      2.4.1
+// @version      2.4.2
 // @description  Desktop notifications when moulinette tags are processed on the EPITA Forge intranet.
 // @author       KazeTachinuu
 // @match        https://intra.forge.epita.fr/*
@@ -154,6 +154,7 @@
             }
 
             if (notified) {
+                setState({ seen: state.seen });
                 playChime(false);
             }
         } catch (e) {
