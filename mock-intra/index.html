@@ -270,6 +270,26 @@
     </div>
 </main>
 
+<!-- Clear stale localStorage when server has been reset (tag names restart at v1) -->
+<script>
+(function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/tags", false); // synchronous so it runs before the userscript
+    xhr.send();
+    var serverTags = JSON.parse(xhr.responseText);
+    var store = JSON.parse(localStorage.getItem("moulinette-notifs") || "{}");
+    var path = location.pathname.replace(/\/?$/, "/");
+    var state = store[path];
+    if (!state || !state.seen || !state.seen.length) return;
+    var serverNames = serverTags.map(function(t) { return t.name; });
+    var stale = state.seen.some(function(name) { return serverNames.indexOf(name) === -1; });
+    if (stale) {
+        delete store[path];
+        localStorage.setItem("moulinette-notifs", JSON.stringify(store));
+    }
+})();
+</script>
+
 <!-- Mock GM_notification (Tampermonkey API) then load the actual userscript -->
 <script>
 function GM_notification(opts) {
@@ -277,16 +297,15 @@ function GM_notification(opts) {
         const n = new Notification(opts.title, { body: opts.text });
         if (opts.onclick) n.onclick = opts.onclick;
     } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(p => { if (p === "granted") GM_notification(opts); });
+        Notification.requestPermission().then(function(p) { if (p === "granted") GM_notification(opts); });
     }
-    // Also log to the mock panel
+
     const log = document.getElementById("mock-log");
-    if (log) {
-        const entry = document.createElement("div");
-        entry.textContent = `[notif] ${opts.title}: ${opts.text}`;
-        entry.style.cssText = "padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;";
-        log.prepend(entry);
-    }
+    if (!log) return;
+    const entry = document.createElement("div");
+    entry.textContent = "[notif] " + opts.title + ": " + opts.text;
+    entry.style.cssText = "padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;";
+    log.prepend(entry);
 }
 </script>
 <script src="../epita-moulinette-notifs.user.js" defer></script>
@@ -480,50 +499,53 @@ function GM_notification(opts) {
 
 <script>
 (function() {
-    const log = (msg) => {
-        const el = document.getElementById("mock-log");
-        const d = document.createElement("div");
-        d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        d.style.cssText = "padding:3px 0;border-bottom:1px solid var(--border);";
-        el.prepend(d);
-    };
+    var panel = document.getElementById("mock-panel");
+    var panelBody = document.getElementById("mock-panel-body");
+    var toggleBtn = document.getElementById("mock-toggle-btn");
+    var logEl = document.getElementById("mock-log");
+    var percentInput = document.getElementById("mock-percent");
 
-    async function addTag(percent, status) {
-        const res = await fetch("/api/add-tag", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ percent: String(percent), status }),
-        });
-        const data = await res.json();
-        log(`Added ${data.tag.name} (${percent}%, ${status})`);
+    function log(msg) {
+        var d = document.createElement("div");
+        d.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+        d.style.cssText = "padding:3px 0;border-bottom:1px solid var(--border);";
+        logEl.prepend(d);
     }
 
-    document.getElementById("btn-tag-100").onclick = () => addTag(100, "SUCCEEDED");
-    document.getElementById("btn-tag-partial").onclick = () => addTag(75, "SUCCEEDED");
-    document.getElementById("btn-tag-fail").onclick = () => addTag(0, "SUCCEEDED");
-    document.getElementById("btn-tag-custom").onclick = () => {
-        const pct = parseInt(document.getElementById("mock-percent").value) || 0;
-        addTag(pct, "SUCCEEDED");
+    function addTag(percent, status) {
+        fetch("/api/add-tag", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ percent: String(percent), status: status }),
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) { log("Added " + data.tag.name + " (" + percent + "%, " + status + ")"); });
+    }
+
+    document.getElementById("btn-tag-100").onclick = function() { addTag(100, "SUCCEEDED"); };
+    document.getElementById("btn-tag-partial").onclick = function() { addTag(75, "SUCCEEDED"); };
+    document.getElementById("btn-tag-fail").onclick = function() { addTag(0, "SUCCEEDED"); };
+    document.getElementById("btn-tag-custom").onclick = function() {
+        addTag(parseInt(percentInput.value) || 0, "SUCCEEDED");
     };
 
-    document.getElementById("btn-reset").onclick = async () => {
-        await fetch("/api/reset", { method: "POST" });
-        localStorage.removeItem("moulinette-notifs");
-        log("Reset tags & localStorage");
-        location.reload();
+    document.getElementById("btn-reset").onclick = function() {
+        fetch("/api/reset", { method: "POST" }).then(function() {
+            localStorage.removeItem("moulinette-notifs");
+            log("Reset tags & localStorage");
+            location.reload();
+        });
     };
 
-    document.getElementById("btn-notif-perm").onclick = () => {
-        Notification.requestPermission().then(p => log(`Notification permission: ${p}`));
+    document.getElementById("btn-notif-perm").onclick = function() {
+        Notification.requestPermission().then(function(p) { log("Notification permission: " + p); });
     };
 
-    // Toggle panel
-    let collapsed = false;
-    const panel = document.getElementById("mock-panel");
-    document.getElementById("mock-panel-header").onclick = () => {
+    var collapsed = false;
+    document.getElementById("mock-panel-header").onclick = function() {
         collapsed = !collapsed;
-        document.getElementById("mock-panel-body").style.display = collapsed ? "none" : "flex";
-        document.getElementById("mock-toggle-btn").textContent = collapsed ? "+" : "−";
+        panelBody.style.display = collapsed ? "none" : "flex";
+        toggleBtn.textContent = collapsed ? "+" : "\u2212";
         panel.classList.toggle("collapsed", collapsed);
     };
 
